@@ -23,5 +23,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // 3. Ruta de LOGOUT
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     
+    // 4. Ruta de CREAR PRODUCTO
     Route::post('/products', [ProductController::class, 'store']);
+    
+    // 5. Ruta de ACTUALIZAR PRODUCTO
+    Route::put('/products/{id}', [ProductController::class, 'update']);
+    
+    // 6. Ruta de ELIMINAR PRODUCTO
+    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
 });
