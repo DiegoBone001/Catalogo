@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -26,10 +27,24 @@ class ProductController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'precio' => 'required|numeric',
-            'url_imagen' => 'nullable|string',
+            'url_imagen' => 'nullable|image|max:5120',
         ]);
 
-        $product = Product::create($validated);
+        $url_imagen_final = null;
+
+        if ($request->hasFile('url_imagen')) {
+            
+            $path = Storage::disk('firebase')->putFile('products', $request->file('url_imagen'));
+
+            $url_imagen_final = Storage::disk('firebase')->url($path);
+        }
+
+        $product = Product::create([
+            'nombre' => $validated['nombre'],
+            'descripcion' => $validated['descripcion'],
+            'precio' => $validated['precio'],
+            'url_imagen' => $url_imagen_final,
+        ]);
         return response()->json($product,201);
     }
 

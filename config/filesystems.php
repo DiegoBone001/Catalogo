@@ -60,6 +60,12 @@ return [
             'report' => false,
         ],
 
+        'firebase' => [
+            'driver' => 'firebase',
+            'project_id' => env('FIREBASE_PROJECT_ID'), // Necesitas agregar esta variable al .env
+            'bucket' => env('FIREBASE_STORAGE_BUCKET'), // Necesitas agregar esta variable al .env
+        ],
+
     ],
 
     /*
