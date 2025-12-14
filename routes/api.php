@@ -31,4 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // 6. Ruta de ELIMINAR PRODUCTO
     Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+    
+    // 7. Ruta de LIMPIEZA MASIVA (solo para desarrollo)
+    Route::delete('/products-cleanup/all-except-latest', [ProductController::class, 'cleanupOldProducts']);
 });

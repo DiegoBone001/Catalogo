@@ -33,10 +33,16 @@ class ProductController extends Controller
         $url_imagen_final = null;
 
         if ($request->hasFile('url_imagen')) {
+            $file = $request->file('url_imagen');
             
-            $path = Storage::disk('firebase')->putFile('products', $request->file('url_imagen'));
-
-            $url_imagen_final = Storage::disk('firebase')->url($path);
+            // Generar un nombre único para el archivo
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            
+            // Guardar en storage/app/public/products
+            $path = $file->storeAs('products', $filename, 'public');
+            
+            // Generar la URL pública
+            $url_imagen_final = asset('storage/' . $path);
         }
 
         $product = Product::create([
@@ -45,6 +51,7 @@ class ProductController extends Controller
             'precio' => $validated['precio'],
             'url_imagen' => $url_imagen_final,
         ]);
+        
         return response()->json($product,201);
     }
 
@@ -87,10 +94,56 @@ class ProductController extends Controller
         // 1. Buscar el producto
         $product = Product::findOrFail($id);
 
-        // 2. Eliminar
+        // 2. Eliminar imagen del storage si existe
+        if ($product->url_imagen) {
+            $imagePath = str_replace(asset('storage/'), '', $product->url_imagen);
+            Storage::disk('public')->delete($imagePath);
+        }
+
+        // 3. Eliminar producto
         $product->delete();
 
-        // 3. Responder (204 significa "Sin contenido", es el estándar para borrar)
+        // 4. Responder (204 significa "Sin contenido", es el estándar para borrar)
         return response()->json(null, 204);
+    }
+
+    /**
+     * Eliminar todos los productos excepto el más reciente (útil para desarrollo)
+     */
+    public function cleanupOldProducts()
+    {
+        // Obtener el último producto creado
+        $latestProduct = Product::latest('id')->first();
+
+        if (!$latestProduct) {
+            return response()->json([
+                'message' => 'No hay productos en la base de datos'
+            ], 404);
+        }
+
+        // Obtener todos los productos excepto el último
+        $productsToDelete = Product::where('id', '!=', $latestProduct->id)->get();
+
+        $deletedCount = 0;
+
+        // Eliminar cada producto y su imagen
+        foreach ($productsToDelete as $product) {
+            // Eliminar imagen del storage si existe
+            if ($product->url_imagen) {
+                $imagePath = str_replace(asset('storage/'), '', $product->url_imagen);
+                Storage::disk('public')->delete($imagePath);
+            }
+
+            $product->delete();
+            $deletedCount++;
+        }
+
+        return response()->json([
+            'message' => "Se eliminaron {$deletedCount} producto(s)",
+            'latest_product_kept' => [
+                'id' => $latestProduct->id,
+                'nombre' => $latestProduct->nombre
+            ]
+        ], 200);
     }
 }
