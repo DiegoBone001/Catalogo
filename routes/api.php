@@ -1,9 +1,12 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController; // Asegúrate de importar el controlador
-use Illuminate\Http\Request; 
-use Illuminate\Support\Facades\Route; 
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CommentController;
+use App\Http\Controllers\Api\ExternalApiController;
+use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\ProductController;
+use Illuminate\Http\Request; 
+use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
@@ -17,7 +20,13 @@ Route::group(['prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
 });
 
-Route::get('/products', [ProductController::class, 'index']); 
+Route::get('/products', [ProductController::class, 'index']);
+
+// Ruta pública para obtener comentarios de un producto
+Route::get('/comments/{product_id}', [CommentController::class, 'getByProduct']);
+
+// Ruta pública para API externa (clima)
+Route::get('/external', [ExternalApiController::class, 'getWeather']); 
 
 Route::middleware('auth:sanctum')->group(function () {
     // 3. Ruta de LOGOUT
@@ -40,4 +49,12 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // 7. Ruta de LIMPIEZA MASIVA (solo para desarrollo, solo admin)
     Route::delete('/products-cleanup/all-except-latest', [ProductController::class, 'cleanupOldProducts'])->middleware('admin');
+    
+    // 8. Rutas de FAVORITOS (requieren autenticación)
+    Route::get('/favorites', [FavoriteController::class, 'index']);
+    Route::post('/favorites', [FavoriteController::class, 'store']);
+    Route::delete('/favorites/{product_id}', [FavoriteController::class, 'destroy']);
+    
+    // 9. Rutas de COMENTARIOS (requieren autenticación para crear)
+    Route::post('/comments', [CommentController::class, 'store']);
 });
