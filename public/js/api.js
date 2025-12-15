@@ -266,3 +266,64 @@ export async function getWeather() {
         return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
+
+// ========== ADMIN - PRODUCTS CRUD ==========
+
+export async function createProduct(productData) {
+    try {
+        const response = await authFetch(`/products`, {
+            method: 'POST',
+            body: JSON.stringify(productData),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            return { success: true, data };
+        }
+
+        return { success: false, message: data.message || 'Error al crear producto' };
+    } catch (error) {
+        console.error('Create product error:', error);
+        return { success: false, message: 'Error de conexión' };
+    }
+}
+
+export async function updateProduct(productId, productData) {
+    try {
+        const response = await authFetch(`/products/`, {
+            method: 'PUT',
+            body: JSON.stringify(productData),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            return { success: true, data };
+        }
+
+        return { success: false, message: data.message || 'Error al actualizar producto' };
+    } catch (error) {
+        console.error('Update product error:', error);
+        return { success: false, message: 'Error de conexión' };
+    }
+}
+
+export async function deleteProduct(productId) {
+    try {
+        const response = await authFetch(`/products/`, {
+            method: 'DELETE',
+        });
+
+        if (response.status === 204 || response.ok) {
+            return { success: true };
+        }
+
+        const data = await response.json().catch(() => ({}));
+        return { success: false, message: data.message || 'Error al eliminar producto' };
+    } catch (error) {
+        console.error('Delete product error:', error);
+        return { success: false, message: 'Error de conexión' };
+    }
+}
+
