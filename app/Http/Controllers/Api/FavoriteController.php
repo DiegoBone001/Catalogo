@@ -63,17 +63,17 @@ class FavoriteController extends Controller
      */
     public function destroy(Request $request, string $productId)
     {
-        $favorite = Favorite::where('user_id', $request->user()->id)
+        // Usar eliminación directa en lugar de $favorite->delete()
+        // porque la tabla tiene clave primaria compuesta
+        $deleted = Favorite::where('user_id', $request->user()->id)
             ->where('product_id', $productId)
-            ->first();
+            ->delete();
 
-        if (!$favorite) {
+        if ($deleted === 0) {
             return response()->json([
                 'message' => 'Favorito no encontrado'
             ], 404);
         }
-
-        $favorite->delete();
 
         return response()->json(null, 204);
     }

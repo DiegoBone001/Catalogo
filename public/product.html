@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle del Producto - FoodDelivery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="catalog.html" class="text-2xl font-black text-orange-600">
+                🍕 <span
+                    class="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">FoodDelivery</span>
+            </a>
+            <div class="flex gap-4 items-center">
+                <a href="catalog.html" class="text-gray-700 hover:text-orange-600 font-semibold">← Volver al
+                    catálogo</a>
+                <span id="userName" class="text-gray-700 font-semibold"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+            <p class="mt-4 text-gray-600">Cargando producto...</p>
+        </div>
+
+        <!-- Product Detail Container -->
+        <div id="productDetail" class="hidden">
+
+            <!-- Product Hero -->
+            <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-8">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Product Image -->
+                    <div class="relative">
+                        <img id="productImage" src="" alt="" class="w-full h-96 md:h-full object-cover"
+                            onerror="this.src='https://via.placeholder.com/600x600?text=Sin+Imagen'">
+                    </div>
+
+                    <!-- Product Info -->
+                    <div class="p-8 flex flex-col justify-center">
+                        <h1 id="productName" class="text-4xl font-black text-gray-800 mb-4"></h1>
+                        <p id="productDescription" class="text-gray-600 text-lg mb-6"></p>
+
+                        <div class="flex items-center justify-between mb-6">
+                            <span id="productPrice" class="text-5xl font-black text-green-600"></span>
+                            <button id="favoriteBtn" onclick="toggleFavorite()"
+                                class="bg-white border-2 border-gray-300 rounded-full p-4 hover:border-red-500 hover:scale-110 transition-all shadow-lg">
+                                <svg id="heartIcon" class="w-8 h-8 fill-gray-300" viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path
+                                        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <button
+                            class="bg-gradient-to-r from-orange-500 to-red-600 text-white py-4 px-8 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all">
+                            🛒 Agregar al Carrito
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="bg-white rounded-3xl shadow-xl p-8">
+                <h2 class="text-3xl font-black text-gray-800 mb-6">Comentarios</h2>
+
+                <!-- Add Comment Form (only if authenticated) -->
+                <div id="commentFormContainer" class="mb-8">
+                    <form id="commentForm" class="space-y-4">
+                        <div>
+                            <label for="comentario" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Comparte tu opinión
+                            </label>
+                            <textarea id="comentario" name="comentario" rows="3" maxlength="200" required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-orange-500 focus:ring focus:ring-orange-200 transition-all resize-none"
+                                placeholder="¿Qué te pareció este producto? (Máximo 200 caracteres)"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">
+                                <span id="charCount">0</span>/200 caracteres
+                            </p>
+                        </div>
+
+                        <button type="submit"
+                            class="bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all">
+                            Publicar Comentario
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Alert Container -->
+                <div id="alertContainer" class="mb-4 hidden"></div>
+
+                <!-- Comments List -->
+                <div id="commentsList" class="space-y-4">
+                    <p class="text-gray-500 text-center py-8">Cargando comentarios...</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { getProduct, getComments, addComment, getFavorites, addToFavorites, removeFromFavorites, getCurrentUser, isAuthenticated } from './js/api.js';
+
+        // Check authentication
+        if (!isAuthenticated()) {
+            window.location.href = 'index.html';
+        }
+
+        // Get product ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+
+        if (!productId) {
+            window.location.href = 'catalog.html';
+        }
+
+        let currentProduct = null;
+        let isFavorite = false;
+
+        // Display user name
+        const user = getCurrentUser();
+        if (user) {
+            document.getElementById('userName').textContent = `Hola, ${user.name}`;
+        }
+
+        async function loadProduct() {
+            const result = await getProduct(productId);
+
+            if (result.success) {
+                currentProduct = result.data;
+                displayProduct(result.data);
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('productDetail').classList.remove('hidden');
+            } else {
+                alert('Producto no encontrado');
+                window.location.href = 'catalog.html';
+            }
+        }
+
+        function displayProduct(product) {
+            document.getElementById('productImage').src = product.url_imagen || 'https://via.placeholder.com/600x600?text=Sin+Imagen';
+            document.getElementById('productImage').alt = product.nombre;
+            document.getElementById('productName').textContent = product.nombre;
+            document.getElementById('productDescription').textContent = product.descripcion || 'Delicioso producto para ti';
+            document.getElementById('productPrice').textContent = `$${parseFloat(product.precio).toFixed(2)}`;
+        }
+
+        async function checkIfFavorite() {
+            const result = await getFavorites();
+            if (result.success) {
+                isFavorite = result.data.some(fav => fav.product_id === parseInt(productId));
+                updateFavoriteUI();
+            }
+        }
+
+        function updateFavoriteUI() {
+            const heartIcon = document.getElementById('heartIcon');
+            if (isFavorite) {
+                heartIcon.classList.remove('fill-gray-300');
+                heartIcon.classList.add('fill-red-500');
+            } else {
+                heartIcon.classList.remove('fill-red-500');
+                heartIcon.classList.add('fill-gray-300');
+            }
+        }
+
+        window.toggleFavorite = async function () {
+            if (isFavorite) {
+                const result = await removeFromFavorites(productId);
+                if (result.success) {
+                    isFavorite = false;
+                    updateFavoriteUI();
+                    showAlert('Eliminado de favoritos', 'success');
+                }
+            } else {
+                const result = await addToFavorites(productId);
+                if (result.success) {
+                    isFavorite = true;
+                    updateFavoriteUI();
+                    showAlert('Agregado a favoritos', 'success');
+                }
+            }
+        };
+
+        async function loadComments() {
+            const result = await getComments(productId);
+
+            if (result.success) {
+                displayComments(result.data);
+            }
+        }
+
+        function displayComments(comments) {
+            const container = document.getElementById('commentsList');
+
+            if (comments.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <p class="text-lg">Aún no hay comentarios</p>
+                        <p class="text-sm">Sé el primero en opinar sobre este producto</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = comments.map(comment => {
+                const date = new Date(comment.created_at);
+                const formattedDate = date.toLocaleDateString('es-EC', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <div class="flex items-start gap-3">
+                            <div class="bg-gradient-to-br from-orange-500 to-red-600 rounded-full w-10 h-10 flex items-center justify-center text-white font-bold">
+                                ${comment.user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-semibold text-gray-800">${comment.user.name}</span>
+                                    <span class="text-xs text-gray-500">${formattedDate}</span>
+                                </div>
+                                <p class="text-gray-700">${comment.comentario}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alertContainer');
+            const bgColor = type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
+
+            container.innerHTML = `
+                <div class="${bgColor} px-4 py-3 rounded-xl">
+                    ${message}
+                </div>
+            `;
+            container.classList.remove('hidden');
+
+            setTimeout(() => {
+                container.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Character counter
+        document.getElementById('comentario').addEventListener('input', (e) => {
+            document.getElementById('charCount').textContent = e.target.value.length;
+        });
+
+        // Handle comment form
+        document.getElementById('commentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const comentario = document.getElementById('comentario').value.trim();
+
+            if (!comentario) {
+                showAlert('El comentario no puede estar vacío', 'error');
+                return;
+            }
+
+            const result = await addComment(productId, comentario);
+
+            if (result.success) {
+                showAlert('Comentario publicado exitosamente', 'success');
+                document.getElementById('comentario').value = '';
+                document.getElementById('charCount').textContent = '0';
+                await loadComments(); // Reload comments
+            } else {
+                showAlert(result.message, 'error');
+            }
+        });
+
+        // Initialize
+        (async () => {
+            await loadProduct();
+            await checkIfFavorite();
+            await loadComments();
+        })();
+    </script>
+
+</body>
+
+</html>

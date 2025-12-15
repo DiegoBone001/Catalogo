@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo - FoodDelivery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .favorite-btn {
+            transition: transform 0.2s;
+        }
+
+        .favorite-btn:active {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="catalog.html" class="text-2xl font-black text-orange-600">
+                🍕 <span
+                    class="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">FoodDelivery</span>
+            </a>
+            <div class="flex gap-4 items-center">
+                <span id="userName" class="text-gray-700 font-semibold"></span>
+                <button onclick="handleLogout()"
+                    class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all">
+                    Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+
+        <!-- Weather Widget + Recommendations -->
+        <div id="weatherSection" class="mb-8"></div>
+
+        <!-- Products Grid -->
+        <div class="mb-6">
+            <h2 class="text-3xl font-black text-gray-800">Nuestro Menú</h2>
+            <p class="text-gray-600">Descubre los mejores platos para ti</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+            <p class="mt-4 text-gray-600">Cargando productos...</p>
+        </div>
+
+        <!-- Products Grid Container -->
+        <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden"></div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-12 hidden">
+            <div class="text-6xl mb-4">🍽️</div>
+            <p class="text-xl text-gray-600">No hay productos disponibles</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getProducts, getFavorites, addToFavorites, removeFromFavorites, getWeather, getCurrentUser, logout, isAuthenticated } from './js/api.js';
+
+        // Check authentication
+        if (!isAuthenticated()) {
+            window.location.href = 'index.html';
+        }
+
+        let favoriteIds = new Set();
+        let weatherData = null;
+
+        // Display user name
+        const user = getCurrentUser();
+        if (user) {
+            document.getElementById('userName').textContent = `Hola, ${user.name}`;
+        }
+
+        async function loadWeather() {
+            const result = await getWeather();
+            if (result.success) {
+                weatherData = result.data;
+                displayWeatherWidget(result.data);
+            }
+        }
+
+        function displayWeatherWidget(weather) {
+            const section = document.getElementById('weatherSection');
+
+            // Get recommendation text based on weather
+            const recommendation = getWeatherRecommendation(weather);
+
+            section.innerHTML = `
+                <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-6 rounded-2xl shadow-xl">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-6">
+                            <div>
+                                <h3 class="text-2xl font-bold">${weather.city}</h3>
+                                <p class="text-5xl font-black">${weather.temperature}°C</p>
+                                <p class="text-lg capitalize mt-2">${weather.description}</p>
+                            </div>
+                            <div>
+                                <img src="https://openweathermap.org/img/wn/${weather.icon}@4x.png" 
+                                     alt="Weather" 
+                                     class="w-32 h-32">
+                            </div>
+                        </div>
+                        <div class="bg-white/20 backdrop-blur-sm p-4 rounded-xl max-w-md">
+                            <p class="font-bold text-lg mb-2">📍 Recomendación del día:</p>
+                            <p class="text-sm">${recommendation}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getWeatherRecommendation(weather) {
+            const description = weather.description.toLowerCase();
+            const temp = weather.temperature;
+            const humidity = weather.humidity;
+
+            if (description.includes('lluvia') || description.includes('tormenta')) {
+                return '☕ Clima para comfort food: Te recomendamos sopas calientes, caldos nutritivos y chocolate caliente para mantenerte calientito.';
+            }
+
+            if (temp > 22) {
+                return '🍧 ¡Qué calor! Refresca te con nuestras bebidas frías, helados, jugos naturales y ensaladas frescas. Ideal para un picnic.';
+            }
+
+            if (humidity > 85) {
+                return '🥨 Alta humedad: Perfecto para disfrutar snacks crujientes que se mantienen frescos.';
+            }
+
+            return '🍽️ Clima perfecto para disfrutar de todos nuestros deliciosos platos. ¡Explora el menú!';
+        }
+
+        function shouldRecommendProduct(product, weather) {
+            if (!weather) return false;
+
+            const description = weather.description.toLowerCase();
+            const temp = weather.temperature;
+            const humidity = weather.humidity;
+            const productName = product.nombre.toLowerCase();
+            const productDesc = (product.descripcion || '').toLowerCase();
+
+            // Rain/Storm → Hot/comfort food
+            if (description.includes('lluvia') || description.includes('tormenta')) {
+                if (productName.includes('sopa') || productName.includes('caldo') ||
+                    productName.includes('chocolate caliente') || productName.includes('té') ||
+                    productDesc.includes('caliente')) {
+                    return true;
+                }
+            }
+
+            // Hot weather → Cold drinks, ice cream, salads
+            if (temp > 22) {
+                if (productName.includes('helado') || productName.includes('jugo') ||
+                    productName.includes('bebida') || productName.includes('ensalada') ||
+                    productName.includes('frío') || productName.includes('fresco') ||
+                    productDesc.includes('frí')) {
+                    return true;
+                }
+            }
+
+            // High humidity → Crunchy snacks
+            if (humidity > 85) {
+                if (productName.includes('snack') || productName.includes('galleta') ||
+                    productName.includes('crujiente') || productName.includes('papas')) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        async function loadFavorites() {
+            const result = await getFavorites();
+            if (result.success) {
+                favoriteIds = new Set(result.data.map(fav => fav.product_id));
+            }
+        }
+
+        async function loadProducts() {
+            const result = await getProducts();
+
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+            const productsGrid = document.getElementById('productsGrid');
+
+            loadingState.classList.add('hidden');
+
+            if (result.success && result.data.length > 0) {
+                emptyState.classList.add('hidden');
+                productsGrid.classList.remove('hidden');
+                renderProducts(result.data);
+            } else {
+                emptyState.classList.remove('hidden');
+                productsGrid.classList.add('hidden');
+            }
+        }
+
+        function renderProducts(products) {
+            const grid = document.getElementById('productsGrid');
+
+            grid.innerHTML = products.map(product => {
+                const isFavorite = favoriteIds.has(product.id);
+                const isRecommended = shouldRecommendProduct(product, weatherData);
+
+                return `
+                    <div class="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col">
+                        <div class="relative">
+                            <img src="${product.url_imagen || 'https://via.placeholder.com/400x300?text=Sin+Imagen'}" 
+                                 alt="${product.nombre}"
+                                 class="w-full h-48 object-cover"
+                                 onerror="this.src='https://via.placeholder.com/400x300?text=Sin+Imagen'">
+                            
+                            <button onclick="toggleFavorite(${product.id})" 
+                                    class="favorite-btn absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:scale-110 transition-transform">
+                                <svg class="w-6 h-6 ${isFavorite ? 'fill-red-500' : 'fill-gray-300'}" 
+                                     viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                </svg>
+                            </button>
+                            
+                            ${isRecommended ? `
+                                <span class="absolute top-2 left-2 bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                                    ⭐ Recomendado
+                                </span>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="p-4 flex-1 flex flex-col">
+                            <h3 class="font-bold text-lg text-gray-800 mb-1">${product.nombre}</h3>
+                            <p class="text-gray-600 text-sm mb-3 flex-1 line-clamp-2">${product.descripcion || 'Delicioso producto para ti'}</p>
+                            
+                            <div class="flex justify-between items-center mt-auto">
+                                <span class="text-2xl font-black text-green-600">$${parseFloat(product.precio).toFixed(2)}</span>
+                                <a href="product.html?id=${product.id}" 
+                                   class="bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all">
+                                    Ver detalles
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.toggleFavorite = async function (productId) {
+            console.log('=== toggleFavorite START ===');
+            console.log('Product ID:', productId);
+            console.log('Current favoriteIds Set:', Array.from(favoriteIds));
+
+            const isFavorite = favoriteIds.has(productId);
+            console.log('Is currently favorite?', isFavorite);
+
+            if (isFavorite) {
+                console.log('Attempting to REMOVE from favorites...');
+                const result = await removeFromFavorites(productId);
+                console.log('Remove result:', result);
+
+                if (result.success) {
+                    console.log('✅ Successfully removed, deleting from Set');
+                    favoriteIds.delete(productId);
+                    console.log('Updated favoriteIds:', Array.from(favoriteIds));
+                } else {
+                    console.error('❌ Error removing from favorites:', result.message);
+                    alert('Error al quitar de favoritos: ' + result.message);
+                    return;
+                }
+            } else {
+                console.log('Attempting to ADD to favorites...');
+                const result = await addToFavorites(productId);
+                console.log('Add result:', result);
+
+                if (result.success) {
+                    console.log('✅ Successfully added, adding to Set');
+                    favoriteIds.add(productId);
+                    console.log('Updated favoriteIds:', Array.from(favoriteIds));
+                } else {
+                    console.error('❌ Error adding to favorites:', result.message);
+                    alert('Error al agregar a favoritos: ' + result.message);
+                    return;
+                }
+            }
+
+            console.log('Reloading favorites from server...');
+            await loadFavorites();
+            console.log('Favorites after reload:', Array.from(favoriteIds));
+
+            console.log('Reloading products UI...');
+            await loadProducts();
+
+            console.log('=== toggleFavorite END ===');
+        };
+
+        window.handleLogout = async function () {
+            await logout();
+            window.location.href = 'index.html';
+        };
+
+        // Initialize
+        (async () => {
+            await Promise.all([
+                loadWeather(),
+                loadFavorites()
+            ]);
+            await loadProducts();
+        })();
+    </script>
+
+</body>
+
+</html>

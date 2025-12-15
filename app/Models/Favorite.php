@@ -6,7 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Favorite extends Model
 {
-    //
+    // Indicar que no tiene clave primaria autoincremental
+    public $incrementing = false;
+    
+    // No hay una única primary key, es compuesta
+    protected $primaryKey = null;
+    
     protected $fillable = [
         'user_id',
         'product_id',
