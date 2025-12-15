@@ -232,10 +232,10 @@
         let currentEditId = null;
 
         // Tab Management
-        window.showTab = function(tab) {
+        window.showTab = function (tab) {
             const tabs = ['create', 'manage'];
             tabs.forEach(t => {
-                 document.getElementById(`${t}Content`).classList.toggle('hidden', t !== tab);
+                document.getElementById(`${t}Content`).classList.toggle('hidden', t !== tab);
                 document.getElementById(`${t}Tab`).classList.toggle('tab-active', t === tab);
                 document.getElementById(`${t}Tab`).classList.toggle('text-gray-600', t !== tab);
             });
@@ -306,7 +306,8 @@
             try {
                 const formData = new FormData();
                 formData.append('nombre', document.getElementById('createNombre').value);
-                formData.append('descripcion', document.getElementById('createDescripcion').v             formData.append('precio', document.getElementById('createPrecio').value);
+                formData.append('descripcion', document.getElementById('createDescripcion').value);
+                formData.append('precio', document.getElementById('createPrecio').value);
                 formData.append('imagen', document.getElementById('createImagen').files[0]);
 
                 const result = await createProduct(formData);
@@ -383,7 +384,7 @@
         }
 
         // EDIT PRODUCT
-        window.openEditModal = function(productId) {
+        window.openEditModal = function (productId) {
             const product = allProducts.find(p => p.id === productId);
             if (!product) return;
 
@@ -396,12 +397,12 @@
             document.getElementById('editCurrentImage').src = product.url_imagen;
             document.getElementById('editCharCount').textContent = (product.descripcion || '').length;
             document.getElementById('editImagePreview').classList.add('hidden');
-            document.getElementById('editImagen ').value = '';
+            document.getElementById('editImagen').value = '';
 
             document.getElementById('editModal').classList.remove('hidden');
         };
 
-        window.closeEditModal = function() {
+        window.closeEditModal = function () {
             document.getElementById('editModal').classList.add('hidden');
             currentEditId = null;
         };
@@ -418,8 +419,8 @@
                 formData.append('nombre', document.getElementById('editNombre').value);
                 formData.append('descripcion', document.getElementById('editDescripcion').value || '');
                 formData.append('precio', document.getElementById('editPrecio').value);
-                
-                const imageFile =  document.getElementById('editImagen').files[0];
+
+                const imageFile = document.getElementById('editImagen').files[0];
                 if (imageFile) {
                     formData.append('imagen', imageFile);
                 }
@@ -438,12 +439,12 @@
                 showAlert('editAlert', '❌ Error: ' + error.message, 'error');
             } finally {
                 btn.disabled = false;
-   .textContent = '💾 Guardar Cambios';
+                btn.textContent = '💾 Guardar Cambios';
             }
         });
 
         // DELETE PRODUCT
-        window.deleteProductConfirm = async function(productId, productName) {
+        window.deleteProductConfirm = async function (productId, productName) {
             if (!confirm(`¿Estás seguro de eliminar el producto "${productName}"?\n\nEsta acción no se puede deshacer.`)) {
                 return;
             }
@@ -459,7 +460,7 @@
         };
 
         // LOGOUT
-        window.handleLogout = async function() {
+        window.handleLogout = async function () {
             await logout();
             window.location.href = 'index.html';
         };

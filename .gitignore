@@ -22,3 +22,19 @@ yarn-error.log
 /.vscode
 /.zed
 firebase_credentials.json
+
+# Archivos de prueba y scripts temporales
+test_*.php
+test_*.ps1
+create_admin.php
+add_demo_products.php
+fix_products.php
+update_images.php
+
+# Archivos de documentación temporal
+GUION_VIDEO_*.txt
+ADMIN_CHANGES_REFERENCE.txt
+SOLUCION_*.md
+
+# Backups
+*.backup

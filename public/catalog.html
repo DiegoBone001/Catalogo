@@ -34,6 +34,8 @@
             <div class="flex gap-4 items-center">
                 <a href="catalog.html" class="text-orange-600 font-bold">Catálogo</a>
                 <a href="favorites.html" class="text-gray-700 hover:text-orange-600 font-semibold">Favoritos</a>
+                <a href="admin.html" id="adminLink" class="hidden text-gray-700 hover:text-orange-600 font-semibold">🔧
+                    Panel Admin</a>
                 <span id="userName" class="text-gray-700 font-semibold"></span>
                 <button onclick="handleLogout()"
                     class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all">
@@ -86,6 +88,10 @@
         const user = getCurrentUser();
         if (user) {
             document.getElementById('userName').textContent = `Hola, ${user.name}`;
+            // Show admin link if user is admin
+            if (user.role === 'admin') {
+                document.getElementById('adminLink').classList.remove('hidden');
+            }
         }
 
         async function loadWeather() {
@@ -214,7 +220,20 @@
         function renderProducts(products) {
             const grid = document.getElementById('productsGrid');
 
-            grid.innerHTML = products.map(product => {
+            // Sort products: recommended first, then others
+            const sortedProducts = [...products].sort((a, b) => {
+                const aRecommended = shouldRecommendProduct(a, weatherData);
+                const bRecommended = shouldRecommendProduct(b, weatherData);
+
+                // If a is recommended and b is not, a comes first
+                if (aRecommended && !bRecommended) return -1;
+                // If b is recommended and a is not, b comes first
+                if (!aRecommended && bRecommended) return 1;
+                // Otherwise maintain original order
+                return 0;
+            });
+
+            grid.innerHTML = sortedProducts.map(product => {
                 const isFavorite = favoriteIds.has(product.id);
                 const isRecommended = shouldRecommendProduct(product, weatherData);
 

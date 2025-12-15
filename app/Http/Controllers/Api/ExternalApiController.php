@@ -15,28 +15,40 @@ class ExternalApiController extends Controller
     {
         // Usar cache de 10 minutos para evitar llamadas excesivas
         $weatherData = Cache::remember('weather_quito', 600, function () {
+            // TEMPORAL: Datos simulados de clima de Quito
+            // Para usar la API real, descomenta el código de abajo
+            return [
+                'success' => true,
+                'city' => 'Quito',
+                'temperature' => 11, // Temperatura típica de Quito
+                'feels_like' => 10,
+                'description' => 'Nubes dispersas',
+                'icon' => '03d',
+                'humidity' => 75,
+                'wind_speed' => 3.5,
+            ];
+            
+            /* CÓDIGO ORIGINAL (descomenta cuando tengas una API key válida):
             try {
-                // API de OpenWeather (sin necesidad de API key para clima actual)
-                // Usando la versión gratuita sin autenticación
                 $response = Http::timeout(10)->get('https://api.openweathermap.org/data/2.5/weather', [
                     'q' => 'Quito,EC',
                     'units' => 'metric',
                     'lang' => 'es',
-                    'appid' => env('OPENWEATHER_API_KEY', ''), // Opcional: agregar API key en .env
+                    'appid' => env('OPENWEATHER_API_KEY', ''),
                 ]);
 
                 if ($response->successful()) {
-                    $data = $response->json();
+                    $weatherData = $response->json();
                     
                     return [
                         'success' => true,
-                        'city' => $data['name'],
-                        'temperature' => round($data['main']['temp']),
-                        'feels_like' => round($data['main']['feels_like']),
-                        'description' => ucfirst($data['weather'][0]['description']),
-                        'icon' => $data['weather'][0]['icon'],
-                        'humidity' => $data['main']['humidity'],
-                        'wind_speed' => $data['wind']['speed'],
+                        'city' => $weatherData['name'],
+                        'temperature' => round($weatherData['main']['temp']),
+                        'feels_like' => round($weatherData['main']['feels_like']),
+                        'description' => ucfirst($weatherData['weather'][0]['description']),
+                        'icon' => $weatherData['weather'][0]['icon'],
+                        'humidity' => $weatherData['main']['humidity'],
+                        'wind_speed' => $weatherData['wind']['speed'],
                     ];
                 }
 
@@ -52,6 +64,7 @@ class ExternalApiController extends Controller
                     'error' => $e->getMessage()
                 ];
             }
+            */
         });
 
         return response()->json($weatherData, $weatherData['success'] ? 200 : 500);
