@@ -1,4 +1,4 @@
-// API Configuration
+﻿// API Configuration
 const API_BASE = 'http://127.0.0.1:8000/api';
 
 // Helper function to get auth token
@@ -59,10 +59,10 @@ export async function login(email, password) {
             return { success: true, data };
         }
 
-        return { success: false, message: data.message || 'Error al iniciar sesión' };
+        return { success: false, message: data.message || 'Error al iniciar sesiÃ³n' };
     } catch (error) {
         console.error('Login error:', error);
-        return { success: false, message: 'Error de conexión' };
+        return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
 
@@ -88,7 +88,7 @@ export async function register(name, email, password, password_confirmation) {
         return { success: false, message: data.message || 'Error al registrarse' };
     } catch (error) {
         console.error('Register error:', error);
-        return { success: false, message: 'Error de conexión' };
+        return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
 
@@ -127,7 +127,7 @@ export async function getProducts() {
         return { success: false, message: 'Error al cargar productos' };
     } catch (error) {
         console.error('Get products error:', error);
-        return { success: false, message: 'Error de conexión' };
+        return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
 
@@ -143,7 +143,7 @@ export async function getProduct(id) {
         return { success: false, message: 'Producto no encontrado' };
     } catch (error) {
         console.error('Get product error:', error);
-        return { success: false, message: 'Error de conexión' };
+        return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
 
@@ -161,7 +161,7 @@ export async function getFavorites() {
         return { success: false, message: 'Error al cargar favoritos' };
     } catch (error) {
         console.error('Get favorites error:', error);
-        return { success: false, message: 'Error de conexión' };
+        return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
 
@@ -181,7 +181,7 @@ export async function addToFavorites(productId) {
         return { success: false, message: data.message || 'Error al agregar a favoritos' };
     } catch (error) {
         console.error('Add to favorites error:', error);
-        return { success: false, message: 'Error de conexión' };
+        return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
 
@@ -196,7 +196,7 @@ export async function removeFromFavorites(productId) {
         console.log('[API] Response ok:', response.ok);
 
         if (response.status === 204 || response.ok) {
-            console.log('[API] ✅ Successfully removed from favorites');
+            console.log('[API] âœ… Successfully removed from favorites');
             return { success: true };
         }
 
@@ -207,7 +207,7 @@ export async function removeFromFavorites(productId) {
         return { success: false, message: data.message || 'Error al quitar de favoritos' };
     } catch (error) {
         console.error('[API] Remove from favorites error:', error);
-        return { success: false, message: 'Error de conexión' };
+        return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
 
@@ -225,7 +225,7 @@ export async function getComments(productId) {
         return { success: false, message: 'Error al cargar comentarios' };
     } catch (error) {
         console.error('Get comments error:', error);
-        return { success: false, message: 'Error de conexión' };
+        return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
 
@@ -245,7 +245,7 @@ export async function addComment(productId, comentario) {
         return { success: false, message: data.message || 'Error al agregar comentario' };
     } catch (error) {
         console.error('Add comment error:', error);
-        return { success: false, message: 'Error de conexión' };
+        return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
 
@@ -263,17 +263,22 @@ export async function getWeather() {
         return { success: false, message: data.message || 'Error al cargar clima' };
     } catch (error) {
         console.error('Get weather error:', error);
-        return { success: false, message: 'Error de conexión' };
+        return { success: false, message: 'Error de conexiÃ³n' };
     }
 }
 
 // ========== ADMIN - PRODUCTS CRUD ==========
 
-export async function createProduct(productData) {
+export async function createProduct(formData) {
     try {
-        const response = await authFetch(`/products`, {
+        const token = getToken();
+        const response = await fetch(`${API_BASE}/products`, {
             method: 'POST',
-            body: JSON.stringify(productData),
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData, // Send FormData directly (includes image file)
         });
 
         const data = await response.json();
@@ -285,15 +290,24 @@ export async function createProduct(productData) {
         return { success: false, message: data.message || 'Error al crear producto' };
     } catch (error) {
         console.error('Create product error:', error);
-        return { success: false, message: 'Error de conexi�n' };
+        return { success: false, message: 'Error de conexión' };
     }
 }
 
-export async function updateProduct(productId, productData) {
+export async function updateProduct(productId, formData) {
     try {
-        const response = await authFetch(`/products/`, {
-            method: 'PUT',
-            body: JSON.stringify(productData),
+        const token = getToken();
+        
+        // Laravel doesn't support PUT with FormData, so we use POST with _method
+        formData.append('_method', 'PUT');
+        
+        const response = await fetch(`${API_BASE}/products/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData,
         });
 
         const data = await response.json();
@@ -305,13 +319,13 @@ export async function updateProduct(productId, productData) {
         return { success: false, message: data.message || 'Error al actualizar producto' };
     } catch (error) {
         console.error('Update product error:', error);
-        return { success: false, message: 'Error de conexi�n' };
+        return { success: false, message: 'Error de conexión' };
     }
 }
 
 export async function deleteProduct(productId) {
     try {
-        const response = await authFetch(`/products/`, {
+        const response = await authFetch(`${API_BASE}/products/${productId}`, {
             method: 'DELETE',
         });
 
@@ -323,7 +337,6 @@ export async function deleteProduct(productId) {
         return { success: false, message: data.message || 'Error al eliminar producto' };
     } catch (error) {
         console.error('Delete product error:', error);
-        return { success: false, message: 'Error de conexi�n' };
+        return { success: false, message: 'Error de conexión' };
     }
 }
-
